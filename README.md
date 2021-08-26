@@ -1,6 +1,6 @@
 # Onboard Terraform templates into IBM Cloud private catalog
 
-IBM Cloud team is adminstering your contribution of Terraform template in the [IBM Cloud public repositories](https://github.com/Cloud-Schematics) for IBM Cloud Schematics. For an high reusability and ease of IBM Cloud Terraform development for provisioning the resources or services in IBM Cloud.  Your Terraform templates are onboard into IBM Cloud private catalog and made available for an user through IBM Cloud catalog management.
+For an high reusability and ease of IBM Cloud Terraform development for provisioning the resources or services in IBM Cloud.  The Terraform templates from [IBM Cloud Cloud-Schematics repository](https://github.com/Cloud-Schematics) can be onboard into private catalogs and made available for an user through IBM Cloud catalog management.
 
 ## IBM Cloud Schematics action
 
@@ -16,9 +16,12 @@ Before you begin, make sure that you are assigned the following permissions
 - To create a [private catalog](https://cloud.ibm.com/docs/account?topic=account-account-services#catalog-management-account-management) in IBM Cloud.
 - To create an [create an IBM Cloud Schematics action](https://cloud.ibm.com/docs/schematics?topic=schematics-access).
 
+**Note**
+The templates that contains complex variables such as list, map, tuple, object input variables are not supported in private catalogs. The workaround is you need to adjust the template to takes simple string type.
+
 ## Running the playbook in Schematics by using the UI
 
-1. Open the [Schematics action configuration page](https://cloud.ibm.com/schematics/actions/create?name=bulk-onboard-to-private-catalog1&url=https://github.ibm.com/Tanya-Shanker/catalog-automation/tree/integrated-extend).
+1. Open the [Schematics action configuration page](https://cloud.ibm.com/schematics/actions/create?name=ansible-is-instance-actions&url=https://github.com/Cloud-Schematics/onboard-to-ibm-catalog).
 2. Review the name for your action, and the resource group and region where you want to create the action. Then, click **Create**.
 3. Select the `main.yaml` playbook that you want to run.
 4. Select the **Verbosity** level to control the depth of information that will be shown when you run the playbook in Schematics.
