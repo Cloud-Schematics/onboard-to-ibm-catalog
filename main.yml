@@ -1,0 +1,7 @@
+---
+# ansible-playbook main.yml -i hosts --connection ssh -e '{"CATALOG_NAME":"", "BASE_URL":"" , "GITHUB_TOKEN":"", "CATALOG_MANAGEMENT_APIKEY":""}'
+- name: simple checking
+  hosts: localhost
+  tasks:
+    - name: execute python script
+      script: python/catalog_automation.py {{ GIT_BASE_URL }} {{ GITHUB_TOKEN }} {{ CATALOG_MANAGEMENT_APIKEY }} {{  CATALOG_NAME }} 
