@@ -1,17 +1,21 @@
 #!/usr/bin/python
 from ibm_platform_services.catalog_management_v1 import *
+import ibm_cloud_sdk_core
 from github import Github
 import os
 import github
 import re
 import sys
 
-from requests.models import Response
-
 WhiteListExtn = (".tf")
-AllowedType   = {"terraform", "ansible"}
+AllowedType   = {"terraform"}
 ReadmeFiles   = {"README.md", "README.MD", "Readme.MD", "Readme.md", "readme.md", "readme.MD"}
 BlackListExtn = (".php5,.pht,.phtml,.shtml,.asa,.cer,.asax,.swf,.xap,.tfstate,.tfstate.backup")
+BlackListedRepo = {'arch-multizone-vpc-vsi-lb', 'catalog-templates','cluster-with-logging-monitoring-addons',
+'multitier-vpc','multitier-vpc-example','multitier-vpc-with-transit-gateway','multizone-secure-iks-with-cis',
+'multizone-vpc','multizone-vpc-gen2','openshift-cluster-on-classic','openshift-hub-and-spoke-vpc-arch',
+'openshift-on-vpc-no-public-endpoint-bastion-vsi-architecture','openshift-on-vpc-private-service-endpoint',
+'roks-on-vpc','vmc-cluster-edge-pool','vsi-operations-scheduler-solution'}
 
 def GetRepoContent(client, path) :
     contents = []
@@ -68,7 +72,7 @@ def FetchRepositories(client, orgName) :
     try :
         org = client.get_organization(orgName)
         org.login
-        repos = org.get_repos()
+        repos = org.get_repos(type='public')
         print("No of repo fetched : ", repos.totalCount)
     except github.GithubException as err :
         print(err)
@@ -89,19 +93,23 @@ def FetchRepositories(client, orgName) :
     for repo in list :
         try : 
             gitRepo = org.get_repo(repo["name"])
-
         except github.GithubException as err:
             print(err)
             continue
         
         print("--------------Validating Repo : ", repo["name"], " for Vulnerability checks, Mandatory Files and Valid Release------------")
+        if repo['name'] in BlackListedRepo:
+            print("Skipping repo : ", repo["name"])
+            continue
+
         response, err = ValidateRepoContent(gitRepo, "")
         if err != '' :
             print("Skipping repo : ", repo["name"], ". Error occured : ", err)
             continue 
 
-        if CheckErrorExists(response=response) :
-            print("Skipping repo : ", repo["name"])
+        invalid, type = CheckErrorExists(response=response)
+        if invalid :
+            print("Skipping repo : ", repo["name"], "due to ", type)
             continue
         if not ValidateMandatoryFiles(gitRepo):
             print("Skipping repo : ", repo["name"], " since mandatory file missing")
@@ -131,15 +139,17 @@ def ValidateRepoContent(client, path):
     dir, err = GetRepoContent(client, path)
     if err != '' :
         return response, err
+        
     while dir  :
         content = dir.pop(0)
         if not(IsDir(content.type)):
             if HasBlacklistedExtensions(content.name):
                 response["BlacklistedExtn"] = True
-                break
             elif HasAllowedExtension(content.name):
                 response["WhitelistedExtn"] = True
-        elif IsDir(content.type) and IsValidType(content.name) :
+        elif response["BlacklistedExtn"] == True or response["WhitelistedExtn"] == True:
+            break
+        elif IsDir(content.type) :
             response, err = ValidateRepoContent(client, content.path)   
     return response, err
 
@@ -185,26 +195,44 @@ def GetReadmeURL(client):
         print(err)
         return ''
 
-    print("Readme ------------------------------------- :", readme.html_url)
     return readme.html_url
 
 def GetCatalog(service) :
-    response = service.list_catalogs()
-    return response
+    response = []
+    try: 
+        response = service.list_catalogs()
+    except ibm_cloud_sdk_core.ApiException as err:
+        print(err)
+        return response, err
+
+    return response, ''
 
 def DeleteOffering(service, catalogID, offeringID) :
-    response = service.delete_offering(catalog_identifier=catalogID, offering_id=offeringID)
-    return response
+    try:
+        service.delete_offering(catalog_identifier=catalogID, offering_id=offeringID)
+    except ibm_cloud_sdk_core.ApiException as err:
+        print(err)
+        return err
+    return ''
 
 def ListOffering(service,catalogID) :
-    response = service.list_offerings(catalog_identifier=catalogID)
-    return response
+    response = []
+    try:
+        response = service.list_offerings(catalog_identifier=catalogID)
+    except ibm_cloud_sdk_core.ApiException as err:
+        print(err)
+        return response, err
+    return response, ''
 
 def CreateCatalog(catalogName,service) :
     label = catalogName
     shortDesc = "Catalog to bulk onboard all the templates"
 
-    response = GetCatalog(service)
+    response, err = GetCatalog(service)
+    if err != '' :
+        print("Error occured while getting the catalog: ", err)
+        return ''
+
     resources = response.result['resources']
     catalogExists = 'false'
     catalogID = ''
@@ -214,8 +242,12 @@ def CreateCatalog(catalogName,service) :
             catalogID=resource['id']
             break
     if (catalogExists == 'false'):
-        response = service.create_catalog(label=label, short_description=shortDesc)
-        catalogID = response.result['id']
+        try:
+            response = service.create_catalog(label=label, short_description=shortDesc)
+        except ibm_cloud_sdk_core.ApiException as err:
+            print("Error occurred while creating a catalog :", err)
+        else:
+            catalogID = response.result['id']
     else:
         print("Catalog already exists with given label, updating the offerings in the catalog") 
     
@@ -223,7 +255,11 @@ def CreateCatalog(catalogName,service) :
 
 def OfferingManagement(repoList, service, catalogID):
     offeringResponse = {}
-    response = ListOffering(service,catalogID)
+    response, err = ListOffering(service,catalogID)
+    if err != '' :
+        print("Error occurred while getting a list of offerings :", err)
+        return
+    
     offeringCount = response.result['total_count']
     print(offeringCount)
     resources = response.result['resources']
@@ -265,8 +301,9 @@ def OfferingOperations(service,catalogID, repo, offeringResponse) :
     if len(offeringResponse["deleted"]) != 0 :
         for offering in offeringResponse["deleted"] :
             print("-------------- Removing offering of deleted repository ---------------")
-            response = DeleteOffering(service,catalogID, offering['id'])
-            # response = service.delete_offering(catalog_identifier=catalogID, offering_id=offering['id'])
+            err = DeleteOffering(service,catalogID, offering['id'])
+            if err != '' :
+                print("Error occurred while deleting offering : ", err)
     
     config = []
     configItem = {}
@@ -277,11 +314,17 @@ def OfferingOperations(service,catalogID, repo, offeringResponse) :
         targetKinds = ["terraform"]
 
         keywords.append(tagName)
-        response = service.import_offering(catalog_identifier=catalogID, target_kinds=targetKinds, tags=tags,  zipurl=tgzURL, target_version=newVersion, repo_type="public_git", include_config=True)
+
+        try :
+            response = service.import_offering(catalog_identifier=catalogID, target_kinds=targetKinds, tags=tags,  zipurl=tgzURL, target_version=newVersion, repo_type="public_git", include_config=True)
+        except ibm_cloud_sdk_core.ApiException as err:
+            print("Skipping this repo as error occurred while creating new offering :",err)
+            return
+        
         offeringID = response.result['id']
         rev = response.result['_rev']
-        
         kinds = response.result['kinds']
+
 
     elif offeringResponse["offeringStatus"] == 'update':
         targetVer = CreateVersion(offeringResponse['existingVersions'])
@@ -289,14 +332,18 @@ def OfferingOperations(service,catalogID, repo, offeringResponse) :
         offeringID = offeringResponse["offeringID"]
         
         keywords.append(tagName)
-        
-        response = service.import_offering_version(catalog_identifier=catalogID, offering_id=offeringID, zipurl=tgzURL, target_version=targetVer, repo_type="public_git", tags=tags, include_config=True)
+        try:
+            response = service.import_offering_version(catalog_identifier=catalogID, offering_id=offeringID, zipurl=tgzURL, target_version=targetVer, repo_type="public_git", tags=tags, include_config=True)
+        except ibm_cloud_sdk_core.ApiException as err:
+            print("Skipping this repo as error occurred while creating new offering version:",err)
+            return
         rev = response.result['_rev']
         kinds = response.result['kinds']
-        
 
-    service.replace_offering(catalog_identifier=catalogID, offering_id=offeringID,keywords=keywords,id=offeringID, rev=rev, name=name, label=name, kinds=kinds, repo_info=repoInfo, tags=tags, offering_icon_url=offering_icon_url, offering_docs_url=offering_docs_url,short_description=short_description)
-
+    try :
+        service.replace_offering(catalog_identifier=catalogID, offering_id=offeringID,keywords=keywords,id=offeringID, rev=rev, name=name, label=name, kinds=kinds, repo_info=repoInfo, tags=tags, offering_icon_url=offering_icon_url, offering_docs_url=offering_docs_url,short_description=short_description)
+    except ibm_cloud_sdk_core.ApiException as err:
+        print("Skipping this repo as error occurred while updating offering:",err)
     print(offeringID)
 
 def CheckReleaseExists(releaseTag, keywords) :
@@ -313,16 +360,18 @@ def CheckRepoExists(repoList, offeringList) :
     for offering in offeringList :
         if offering['label'] not in list: 
             deleted.append(offering)
-    print("------------------------------------- deleted list------------------ ", deleted)              
     return deleted
 
 def CheckErrorExists(response) :
     exists = False
+    type = ''
     if response["BlacklistedExtn"] :
         exists = True
+        type = "Vulnerable files"
     elif not (response["WhitelistedExtn"]):
         exists = True
-    return exists
+        type = "Missing required files"
+    return exists, type
 
 def CreateVersion(existingVersions) :
     versionList = []
