@@ -409,5 +409,5 @@ def main() :
     catalogID = CreateCatalog(catalogName,service)
     OfferingManagement(validRepoList,service,catalogID)
     
-     
+    
 main()
