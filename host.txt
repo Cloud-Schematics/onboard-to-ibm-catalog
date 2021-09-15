@@ -1,1 +1,1 @@
-schematics-dev.us-east.containers.appdomain.cloud
+127.0.0.1
