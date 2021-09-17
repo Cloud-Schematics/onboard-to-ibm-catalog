@@ -204,7 +204,7 @@ def GetCatalog(service) :
     except ibm_cloud_sdk_core.ApiException as err:
         print(err)
         return response, err
-
+    print("list catalog response : ", response)
     return response, ''
 
 def DeleteOffering(service, catalogID, offeringID) :
@@ -243,6 +243,7 @@ def CreateCatalog(catalogName,service) :
             break
     if (catalogExists == 'false'):
         try:
+            print("creating new catalog")
             response = service.create_catalog(label=label, short_description=shortDesc)
         except ibm_cloud_sdk_core.ApiException as err:
             print("Error occurred while creating a catalog :", err)
@@ -406,6 +407,7 @@ def main() :
     org = GetOrgName(base_url)
     validRepoList = FetchRepositories(g, org)
     service = GetCatalogService()
+    print("Catalog service instance :", service)
     catalogID = CreateCatalog(catalogName,service)
     OfferingManagement(validRepoList,service,catalogID)
     
