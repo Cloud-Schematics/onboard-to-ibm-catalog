@@ -201,7 +201,7 @@ def GetReadmeURL(client):
 def GetCatalog(service,iam_token) :
     response = []
     kwargs = {
-        "Authorization" : iam_token,
+        "Authorization" : "Bearer "+ iam_token,
     }
     try: 
         response = service.list_catalogs(kwargs=kwargs)
@@ -419,6 +419,7 @@ def main() :
     apikey = os.getenv("CATALOG_MANAGEMENT_APIKEY")
     print("APIKEY :", apikey)
     iam_token = authenticator.token_manager.request_token()['access_token']
+    print("TOKEN :", iam_token)
     catalogID = CreateCatalog(catalogName,service,iam_token)
     OfferingManagement(validRepoList,service,catalogID)
     
