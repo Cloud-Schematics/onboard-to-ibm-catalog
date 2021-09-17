@@ -198,10 +198,13 @@ def GetReadmeURL(client):
 
     return readme.html_url
 
-def GetCatalog(service) :
+def GetCatalog(service,iam_token) :
     response = []
+    kwargs = {
+        "Authorization" : iam_token,
+    }
     try: 
-        response = service.list_catalogs()
+        response = service.list_catalogs(kwargs=kwargs)
     except ibm_cloud_sdk_core.ApiException as err:
         print(err)
         return response, err
@@ -225,11 +228,11 @@ def ListOffering(service,catalogID) :
         return response, err
     return response, ''
 
-def CreateCatalog(catalogName,service) :
+def CreateCatalog(catalogName,service,iam_token) :
     label = catalogName
     shortDesc = "Catalog to bulk onboard all the templates"
 
-    response, err = GetCatalog(service)
+    response, err = GetCatalog(service,iam_token)
     if err != '' :
         print("Error occured while getting the catalog: ", err)
         return ''
@@ -415,8 +418,8 @@ def main() :
     print("Catalog service : ", service)
     apikey = os.getenv("CATALOG_MANAGEMENT_APIKEY")
     print("APIKEY :", apikey)
-    
-    catalogID = CreateCatalog(catalogName,service)
+    iam_token = authenticator.token_manager.request_token()['access_token']
+    catalogID = CreateCatalog(catalogName,service,iam_token)
     OfferingManagement(validRepoList,service,catalogID)
     
     
