@@ -6,6 +6,7 @@ import os
 import github
 import re
 import sys
+from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 
 WhiteListExtn = (".tf")
 AllowedType   = {"terraform"}
@@ -408,6 +409,13 @@ def main() :
     validRepoList = FetchRepositories(g, org)
     service = GetCatalogService()
     print("Catalog service instance :", service)
+    
+    authenticator = IAMAuthenticator(sys.argv[3])
+    service = CatalogManagementV1(authenticator=authenticator)
+    print("Catalog service : ", service)
+    apikey = os.getenv("CATALOG_MANAGEMENT_APIKEY")
+    print("APIKEY :", apikey)
+    
     catalogID = CreateCatalog(catalogName,service)
     OfferingManagement(validRepoList,service,catalogID)
     
