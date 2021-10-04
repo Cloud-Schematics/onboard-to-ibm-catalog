@@ -42,6 +42,8 @@ The templates that contains complex variables such as list, map, tuple, object i
 
 1. Open the [IBM Cloud catalog management](https://cloud.ibm.com/content-mgmt/catalogs).
 2. Click your catalog name link to view the list of product offerings in the private catalog.
+    **Example of the screen capture**
+    ![List of the onboarded Terraform template in private catalog](images/private_catalog.png)
 
 ## Reference
 
