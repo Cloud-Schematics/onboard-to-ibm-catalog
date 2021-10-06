@@ -45,7 +45,7 @@ The templates that contains complex variables such as list, map, tuple, object i
 
     **Example of the screen capture**
     ![List of the onboarded Terraform template in private catalog](images/private_catalog_list.png)
-3. You can future click on the offerings and click **Install** to create the workspace. **Note** Ensure you provide all the required input variables as per the readme file of the offering in the **Settings** page to provision the resources through Schematics workspace.
+3. You can further click the required offerings, accept the license, and click **Install** to create the workspace. **Note** Ensure you provide all the required input variables as per the readme file of the offering in the **Settings** page to provision the resources through Schematics workspace.
 
 ## Reference
 
