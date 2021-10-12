@@ -23,7 +23,7 @@ The templates that contains complex variables such as list, map, tuple, object i
 
 1. Open the [Schematics action configuration page](https://cloud.ibm.com/schematics/actions/create?name=ansible-is-instance-actions&url=https://github.com/Cloud-Schematics/onboard-to-ibm-catalog).
 2. Review the name for your action, and the resource group and region where you want to create the action. Then, click **Create**.
-3. Select the `main.yaml` playbook that you want to run.
+3. Select the `main.yml` playbook that you want to run.
 4. Select the **Verbosity** level to control the depth of information that will be shown when you run the playbook in Schematics.
 5. Required: Expand the **Advanced options** to enter all the required input variables in key-value pairs as shown in the table, and in the screen capture.
 
