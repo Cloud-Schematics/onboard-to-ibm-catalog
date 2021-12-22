@@ -38,7 +38,7 @@ Before you begin, make sure that you are assigned the following permissions
 ## Verification steps
 
 1. Open the [IBM Cloud catalog management](https://cloud.ibm.com/content-mgmt/catalogs).
-2. Click your catalog name link to view the list of product offerings in the private catalog.
+2. Click your catalog name link to view the list of product offerings in the private catalog. **Note** You can view the list of product offerings only when your product offerings are validated. 
 
     **Example of the screen capture**
     ![List of the onboarded Terraform template in private catalog](images/private_catalog_list.png)
