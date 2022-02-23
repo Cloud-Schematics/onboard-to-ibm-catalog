@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from ibm_platform_services.catalog_management_v1 import *
 import ibm_cloud_sdk_core
 from github import Github
@@ -200,15 +200,19 @@ def GetReadmeURL(client):
 
 def GetCatalog(service,iam_token) :
     response = []
-    kwargs = {
-        "Authorization" : "Bearer "+ iam_token,
-    }
+    # kwargs = {
+    #     'headers' : {
+    #         'Authorization' : 'Bearer ' + iam_token
+    #         }
+    # }
+
     try: 
-        response = service.list_catalogs(kwargs=kwargs)
+        response = service.list_catalogs()
+        #kwargs=kwargs
     except ibm_cloud_sdk_core.ApiException as err:
         print(err)
         return response, err
-    print("list catalog response : ", response)
+
     return response, ''
 
 def DeleteOffering(service, catalogID, offeringID) :
@@ -238,6 +242,7 @@ def CreateCatalog(catalogName,service,iam_token) :
         return ''
 
     resources = response.result['resources']
+
     catalogExists = 'false'
     catalogID = ''
     for resource in resources:
@@ -247,7 +252,7 @@ def CreateCatalog(catalogName,service,iam_token) :
             break
     if (catalogExists == 'false'):
         try:
-            print("creating new catalog")
+            print("Creating a catalog")
             response = service.create_catalog(label=label, short_description=shortDesc)
         except ibm_cloud_sdk_core.ApiException as err:
             print("Error occurred while creating a catalog :", err)
@@ -409,19 +414,14 @@ def main() :
 
     g = Github(login_or_token=token)
     org = GetOrgName(base_url)
+
+    if "ibm" in base_url :
+        g = Github(base_url="https://github.ibm.com/api/v3", login_or_token=token)
+    else :
+        g = Github(login_or_token=token)
+
     validRepoList = FetchRepositories(g, org)
     service = GetCatalogService()
-    print("Catalog service instance :", service)
-    
-    authenticator = IAMAuthenticator(sys.argv[3])
-    service = CatalogManagementV1(authenticator=authenticator)
-    print("Catalog service : ", service)
-    apikey = os.getenv("CATALOG_MANAGEMENT_APIKEY")
-    print("APIKEY :", apikey)
-    iam_token = authenticator.token_manager.request_token()['access_token']
-    print("TOKEN :", iam_token)
-    catalogID = CreateCatalog(catalogName,service,iam_token)
+    catalogID = CreateCatalog(catalogName,service,"")
     OfferingManagement(validRepoList,service,catalogID)
-    
-    
 main()
